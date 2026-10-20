@@ -1,0 +1,21 @@
+{
+  "short_name": "UnifyTalk",
+  "name": "UnifyTalk — Accessibility Communication Platform",
+  "description": "Breaking communication barriers for deaf, mute, and blind individuals using AI, sign language detection, and voice navigation.",
+  "icons": [
+    {
+      "src": "logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#08041a",
+  "background_color": "#08041a",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "categories": ["health", "education", "communication"],
+  "lang": "en"
+}
