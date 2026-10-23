@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
@@ -7,6 +7,7 @@ import { NotificationProvider, useNotifications } from "./context/NotificationCo
 import { LanguageProvider, useLanguage } from "./context/LanguageContext";
 import { GlobalScreenReaderProvider, useGlobalScreenReader } from "./context/GlobalScreenReaderContext";
 import NotificationBanner from "./components/NotificationBanner";
+import ShortcutsModal from "./components/ShortcutsModal";
 
 import Landing       from "./pages/Landing";
 import Phase1        from "./pages/Phase1_Chat";
@@ -242,16 +243,28 @@ function GlobalNav() {
   const { theme, cycleTheme } = useTheme();
   const { lang, changeLang, t, LANGUAGES } = useLanguage();
   const { isActive: isScreenReaderActive, toggleScreenReader } = useGlobalScreenReader();
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const navigate = useNavigate();
 
-  // Accessibility Keyboard Shortcuts (Alt+R: Screen Reader, Alt+T: Theme, Alt+H: Home, Alt+E: Emergency SOS)
+  // Accessibility Keyboard Shortcuts (Alt+1..8, Alt+H, Alt+D, Alt+E, Alt+R, Alt+T, Alt+K, ?)
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.altKey && !e.ctrlKey && !e.metaKey) {
-        const target = e.target;
-        const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
-        if (isInput) return;
+      const target = e.target;
+      const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable);
+      
+      // Toggle Shortcuts dialog with ? or Alt+K
+      if (!isInput && (e.key === '?' || (e.altKey && e.key.toLowerCase() === 'k'))) {
+        e.preventDefault();
+        setIsShortcutsOpen(prev => !prev);
+        return;
+      }
 
+      if (e.key === 'Escape' && isShortcutsOpen) {
+        setIsShortcutsOpen(false);
+        return;
+      }
+
+      if (e.altKey && !e.ctrlKey && !e.metaKey && !isInput) {
         const key = e.key.toLowerCase();
         if (key === 'r') {
           e.preventDefault();
@@ -260,18 +273,42 @@ function GlobalNav() {
         } else if (key === 't') {
           e.preventDefault();
           cycleTheme();
-        } else if (key === 'h') {
+        } else if (key === 'h' || key === '0') {
           e.preventDefault();
           navigate('/');
-        } else if (key === 'e') {
+        } else if (key === '1') {
+          e.preventDefault();
+          navigate('/chat');
+        } else if (key === '2') {
+          e.preventDefault();
+          navigate('/board');
+        } else if (key === '3') {
+          e.preventDefault();
+          navigate('/phrases');
+        } else if (key === '4') {
+          e.preventDefault();
+          navigate('/signs');
+        } else if (key === '5') {
+          e.preventDefault();
+          navigate('/reader');
+        } else if (key === '6') {
+          e.preventDefault();
+          navigate('/community');
+        } else if (key === '7') {
+          e.preventDefault();
+          navigate('/symptom');
+        } else if (key === '8' || key === 'e') {
           e.preventDefault();
           navigate('/emergency');
+        } else if (key === 'd') {
+          e.preventDefault();
+          navigate('/dashboard');
         }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isScreenReaderActive, toggleScreenReader, cycleTheme, navigate, notify]);
+  }, [isScreenReaderActive, toggleScreenReader, cycleTheme, navigate, notify, isShortcutsOpen]);
 
   const NAV_LABELS = { home: t('home') || 'Home', chat: t('chat'), pictograms: t('pictograms'), phrases: t('phrases'), signAI: t('signAI'), screenReader: t('screenReader'), community: t('community'), symptoms: t('symptoms'), emergency: t('emergency') };
 
@@ -287,68 +324,79 @@ function GlobalNav() {
   };
 
   return (
-    <nav className="ut-navbar" aria-label="Main navigation">
-      <NavLink to="/" className="ut-nav-logo" title="UnifyTalk Home (Alt + H)">
-        <div className="ut-nav-logo-icon">U</div>
-        UnifyTalk
-      </NavLink>
-      <div className="ut-nav-links">
-        {NAV_ROUTES.map(r => (
-          <NavLink key={r.path} to={r.path} end={r.exact}
-            className={({ isActive }) => `ut-nav-item${isActive ? " active" : ""}`}
-            title={r.path === '/emergency' ? 'Emergency SOS (Alt + E)' : undefined}>
-            {r.icon} {NAV_LABELS[r.key] || r.key}
-          </NavLink>
-        ))}
-      </div>
-      <div className="ut-nav-right">
-        <select
-          className="ut-nav-lang"
-          value={lang}
-          onChange={(e) => changeLang(e.target.value)}
-          aria-label={t('selectLanguage') || "Select Language"}
-          title="Change Language"
-        >
-          {LANGUAGES.map(l => (
-            <option key={l.code} value={l.code} style={{ background: '#0e0828', color: '#ede8ff' }}>
-              {l.flag} {l.label}
-            </option>
+    <>
+      <nav className="ut-navbar" aria-label="Main navigation">
+        <NavLink to="/" className="ut-nav-logo" title="UnifyTalk Home (Alt + H)">
+          <div className="ut-nav-logo-icon">U</div>
+          UnifyTalk
+        </NavLink>
+        <div className="ut-nav-links">
+          {NAV_ROUTES.map(r => (
+            <NavLink key={r.path} to={r.path} end={r.exact}
+              className={({ isActive }) => `ut-nav-item${isActive ? " active" : ""}`}
+              title={r.path === '/emergency' ? 'Emergency SOS (Alt + E / Alt + 8)' : undefined}>
+              {r.icon} {NAV_LABELS[r.key] || r.key}
+            </NavLink>
           ))}
-        </select>
-        <button
-          className={`ut-nav-theme ${isScreenReaderActive ? 'active' : ''}`}
-          onClick={toggleScreenReader}
-          aria-label={isScreenReaderActive ? "Disable Global Screen Reader (Alt + R)" : "Enable Global Screen Reader (Alt + R)"}
-          title="Toggle Global Screen Reader (Alt + R)"
-          style={isScreenReaderActive ? { borderColor: 'var(--p)', color: 'var(--text)' } : {}}
-        >
-          {isScreenReaderActive ? '🗣️' : '🔇'}
-        </button>
-        <button
-          className="ut-nav-theme"
-          onClick={cycleTheme}
-          aria-label={`Cycle Theme: ${theme} (Alt + T)`}
-          title={`Theme: ${theme} (Alt + T)`}
-        >
-          {themeIcons[theme] || '🌙'}
-        </button>
-        {user ? (
-          <>
-            <button className="ut-nav-auth" onClick={() => navigate('/dashboard')} title={t('dashboard')}>
-              👤 {user.name?.split(' ')[0] || t('dashboard')}
-            </button>
-            <button className="ut-nav-logout" onClick={handleLogout} title={t('logout') || "Sign Out"} aria-label={t('logout') || "Sign Out"}>
-              🚪 {t('logout') || "Sign Out"}
-            </button>
-          </>
-        ) : (
-          <button className="ut-nav-auth primary" onClick={() => navigate('/auth')}>
-            🔐 {t('login')}
+        </div>
+        <div className="ut-nav-right">
+          <select
+            className="ut-nav-lang"
+            value={lang}
+            onChange={(e) => changeLang(e.target.value)}
+            aria-label={t('selectLanguage') || "Select Language"}
+            title="Change Language"
+          >
+            {LANGUAGES.map(l => (
+              <option key={l.code} value={l.code} style={{ background: '#0e0828', color: '#ede8ff' }}>
+                {l.flag} {l.label}
+              </option>
+            ))}
+          </select>
+          <button
+            className={`ut-nav-theme ${isScreenReaderActive ? 'active' : ''}`}
+            onClick={toggleScreenReader}
+            aria-label={isScreenReaderActive ? "Disable Global Screen Reader (Alt + R)" : "Enable Global Screen Reader (Alt + R)"}
+            title="Toggle Global Screen Reader (Alt + R)"
+            style={isScreenReaderActive ? { borderColor: 'var(--p)', color: 'var(--text)' } : {}}
+          >
+            {isScreenReaderActive ? '🗣️' : '🔇'}
           </button>
-        )}
-        <div className="ut-phase-tag">{tag}</div>
-      </div>
-    </nav>
+          <button
+            className="ut-nav-theme"
+            onClick={cycleTheme}
+            aria-label={`Cycle Theme: ${theme} (Alt + T)`}
+            title={`Theme: ${theme} (Alt + T)`}
+          >
+            {themeIcons[theme] || '🌙'}
+          </button>
+          <button
+            className="ut-nav-theme"
+            onClick={() => setIsShortcutsOpen(true)}
+            aria-label="Keyboard Shortcuts (Press ? or Alt + K)"
+            title="Keyboard Shortcuts (Press ? or Alt + K)"
+          >
+            ⌨️
+          </button>
+          {user ? (
+            <>
+              <button className="ut-nav-auth" onClick={() => navigate('/dashboard')} title={t('dashboard')}>
+                👤 {user.name?.split(' ')[0] || t('dashboard')}
+              </button>
+              <button className="ut-nav-logout" onClick={handleLogout} title={t('logout') || "Sign Out"} aria-label={t('logout') || "Sign Out"}>
+                🚪 {t('logout') || "Sign Out"}
+              </button>
+            </>
+          ) : (
+            <button className="ut-nav-auth primary" onClick={() => navigate('/auth')}>
+              🔐 {t('login')}
+            </button>
+          )}
+          <div className="ut-phase-tag">{tag}</div>
+        </div>
+      </nav>
+      <ShortcutsModal isOpen={isShortcutsOpen} onClose={() => setIsShortcutsOpen(false)} />
+    </>
   );
 }
 

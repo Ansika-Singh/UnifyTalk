@@ -50,6 +50,12 @@ const styles = `
   .dash-badges { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 28px; }
   .dash-badge { padding: 10px 16px; border-radius: 14px; background: rgba(168,85,247,0.08); border: 1px solid var(--border, #2a1560); display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted, #7c6aaa); }
   .dash-badge.earned { background: rgba(52,211,153,0.1); border-color: rgba(52,211,153,0.3); color: #34d399; }
+  .dash-id-card { padding: 24px; border-radius: 22px; background: rgba(14,8,40,0.6); border: 1px solid var(--border, #2a1560); margin-bottom: 28px; }
+  .dash-id-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-top: 14px; }
+  .dash-input-group label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted, #7c6aaa); margin-bottom: 6px; font-weight: 600; }
+  .dash-input { width: 100%; padding: 10px 14px; border-radius: 10px; background: rgba(8, 4, 26, 0.7); border: 1px solid var(--border, #2a1560); color: var(--text, #ede8ff); font-size: 13px; font-family: 'DM Sans', sans-serif; outline: none; transition: border 0.2s; }
+  .dash-input:focus { border-color: var(--cyan, #06b6d4); }
+  .dash-id-preview { margin-top: 20px; padding: 20px; border-radius: 16px; background: linear-gradient(135deg, rgba(168,85,247,0.1), rgba(6,182,212,0.08)); border: 1px dashed rgba(168,85,247,0.4); }
   @media(max-width:700px) { .dash-profile { grid-template-columns: 1fr; text-align: center; justify-items: center; } .dash-header { flex-direction: column; align-items: flex-start; } }
 `;
 
@@ -90,6 +96,23 @@ export default function Dashboard() {
   useEffect(() => { if (!user) { navigate('/auth'); return; } document.title = 'Dashboard | UnifyTalk'; loadStats(); }, [user, navigate, loadStats]);
 
   const { lang, changeLang, t, LANGUAGES } = useLanguage();
+
+  const [medicalId, setMedicalId] = useState(() => {
+    try {
+      const saved = localStorage.getItem('unifytalk-medical-id');
+      return saved ? JSON.parse(saved) : { contactName: '', contactPhone: '', relation: '', bloodGroup: '', notes: '' };
+    } catch {
+      return { contactName: '', contactPhone: '', relation: '', bloodGroup: '', notes: '' };
+    }
+  });
+
+  const handleMedicalIdChange = (field, val) => {
+    setMedicalId(prev => {
+      const updated = { ...prev, [field]: val };
+      localStorage.setItem('unifytalk-medical-id', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   const handleLogout = () => { logout(); notify({ message: `👋 ${t('logout')}`, type: 'info' }); navigate('/'); };
   if (!user) return null;
@@ -174,6 +197,113 @@ export default function Dashboard() {
                 </option>
               ))}
             </select>
+          </div>
+        </div>
+
+        {/* EMERGENCY MEDICAL & ACCESSIBILITY ID CARD */}
+        <div className="dash-section-title">🪪 Emergency Medical & Accessibility ID</div>
+        <div className="dash-id-card">
+          <p style={{ fontSize: '13px', color: 'var(--muted, #7c6aaa)', marginBottom: '14px', lineHeight: 1.6 }}>
+            Set up your emergency contact and critical accommodation notes. This data is stored securely on your device and can be printed or displayed to first responders in an emergency.
+          </p>
+          <div className="dash-id-grid">
+            <div className="dash-input-group">
+              <label htmlFor="id-contact-name">Emergency Contact Name</label>
+              <input
+                id="id-contact-name"
+                className="dash-input"
+                placeholder="e.g. Jane Doe"
+                value={medicalId.contactName}
+                onChange={(e) => handleMedicalIdChange('contactName', e.target.value)}
+              />
+            </div>
+            <div className="dash-input-group">
+              <label htmlFor="id-contact-phone">Contact Phone Number</label>
+              <input
+                id="id-contact-phone"
+                type="tel"
+                className="dash-input"
+                placeholder="e.g. +1 555-0199"
+                value={medicalId.contactPhone}
+                onChange={(e) => handleMedicalIdChange('contactPhone', e.target.value)}
+              />
+            </div>
+            <div className="dash-input-group">
+              <label htmlFor="id-relation">Relationship</label>
+              <input
+                id="id-relation"
+                className="dash-input"
+                placeholder="e.g. Spouse / Parent / Caregiver"
+                value={medicalId.relation}
+                onChange={(e) => handleMedicalIdChange('relation', e.target.value)}
+              />
+            </div>
+            <div className="dash-input-group">
+              <label htmlFor="id-blood-group">Blood Group & Medical Alert</label>
+              <input
+                id="id-blood-group"
+                className="dash-input"
+                placeholder="e.g. O+, Asthmatic, Diabetic, Non-verbal"
+                value={medicalId.bloodGroup}
+                onChange={(e) => handleMedicalIdChange('bloodGroup', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="dash-input-group" style={{ marginTop: '14px' }}>
+            <label htmlFor="id-notes">Communication & Accommodation Guidance</label>
+            <input
+              id="id-notes"
+              className="dash-input"
+              placeholder="e.g. Please speak clearly, uses text-to-speech / sign language"
+              value={medicalId.notes}
+              onChange={(e) => handleMedicalIdChange('notes', e.target.value)}
+            />
+          </div>
+
+          {/* ID Card Preview */}
+          <div className="dash-id-preview">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(168,85,247,0.3)', paddingBottom: '10px', marginBottom: '10px' }}>
+              <div>
+                <strong style={{ fontSize: '15px', color: 'var(--text, #ede8ff)' }}>{user.name}</strong>
+                <span style={{ marginLeft: '10px', fontSize: '11px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(6,182,212,0.15)', color: '#67e8f9', border: '1px solid rgba(6,182,212,0.3)' }}>
+                  {user.disabilityType && user.disabilityType !== 'none' ? `${user.disabilityType.toUpperCase()} USER` : 'ACCESSIBLE COMM'}
+                </span>
+              </div>
+              <span style={{ fontSize: '11px', color: 'var(--muted, #7c6aaa)' }}>UnifyTalk Emergency ID</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', fontSize: '12px' }}>
+              <div><strong>Emergency Contact:</strong> {medicalId.contactName || 'Not specified'} {medicalId.relation ? `(${medicalId.relation})` : ''}</div>
+              <div><strong>Phone:</strong> {medicalId.contactPhone ? <a href={`tel:${medicalId.contactPhone}`} style={{ color: 'var(--cyan, #06b6d4)', textDecoration: 'none' }}>{medicalId.contactPhone}</a> : 'Not specified'}</div>
+              <div><strong>Medical Alert:</strong> {medicalId.bloodGroup || 'None noted'}</div>
+              <div><strong>Guidance:</strong> {medicalId.notes || 'Uses UnifyTalk Accessibility Platform'}</div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: '16px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button
+              className="dash-btn"
+              onClick={() => {
+                notify({ message: '💾 Emergency ID Card saved to device!', type: 'success' });
+              }}
+            >
+              💾 Save ID Card
+            </button>
+            <button
+              className="dash-btn"
+              onClick={() => window.print()}
+            >
+              🖨️ Print / Export ID
+            </button>
+            {medicalId.contactPhone && (
+              <a
+                href={`tel:${medicalId.contactPhone}`}
+                className="dash-btn"
+                style={{ borderColor: 'rgba(52,211,153,0.4)', color: '#34d399' }}
+              >
+                📞 Call Contact ({medicalId.contactPhone})
+              </a>
+            )}
           </div>
         </div>
       </div>
